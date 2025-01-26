@@ -145,6 +145,7 @@
 
         .file-name-cell {
             padding-right: 15px;
+            position: relative;
         }
 
         .file-name {
@@ -152,26 +153,28 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            position: relative;
             display: block;
+            cursor: default;
         }
 
-        .file-name:hover::after {
-            content: attr(data-full-name);
+        .file-name-tooltip {
+            display: none;
             position: absolute;
-            left: 0;
-            top: 100%;
-            background-color: #333;
+            background-color: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 5px 10px;
+            padding: 8px 12px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 13px;
             z-index: 1000;
             white-space: normal;
-            max-width: 300px;
+            max-width: 400px;
             word-wrap: break-word;
-            margin-top: 5px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+        }
+
+        .file-name-cell:hover .file-name-tooltip {
+            display: block;
         }
 
         .progress-container {
@@ -280,8 +283,33 @@
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'file-name';
                 nameDiv.textContent = task.fileName;
-                nameDiv.setAttribute('data-full-name', task.fileName);
+
+                // 创建tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'file-name-tooltip';
+                tooltip.textContent = task.fileName;
+
+                // 添加鼠标移动事件来更新tooltip位置
+                nameCell.addEventListener('mousemove', (e) => {
+                    const rect = nameCell.getBoundingClientRect();
+                    const tooltipHeight = tooltip.offsetHeight;
+                    
+                    // 计算tooltip的位置
+                    let top = e.clientY - rect.top + 20; // 鼠标下方20px
+                    const left = 0; // 从单元格左侧开始
+                    
+                    // 确保tooltip不会超出屏幕底部
+                    const maxTop = window.innerHeight - rect.top - tooltipHeight - 10;
+                    if (top > maxTop) {
+                        top = e.clientY - rect.top - tooltipHeight - 10; // 鼠标上方
+                    }
+                    
+                    tooltip.style.top = `${top}px`;
+                    tooltip.style.left = `${left}px`;
+                });
+
                 nameCell.appendChild(nameDiv);
+                nameCell.appendChild(tooltip);
 
                 // 进度列
                 const progressCell = document.createElement('td');
