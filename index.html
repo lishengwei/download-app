@@ -147,19 +147,23 @@
         }
 
         .progress-bar {
-            height: 100%;
-            background-color: #4CAF50;
+            height: 20px;
+            background-color: #28a745;
             width: 0%;
             transition: width 0.3s ease;
-            color: white;
             text-align: center;
-            font-size: 12px;
+            color: white;
             line-height: 20px;
+            font-size: 12px;
+        }
+
+        .progress-bar.error {
+            background-color: #dc3545;
         }
 
         .status {
-            text-align: right;
-            font-size: 14px;
+            margin-top: 5px;
+            font-size: 12px;
             color: #666;
         }
 
@@ -201,11 +205,38 @@
     <script>
         const { ipcRenderer } = require('electron');
         let downloadTasks = [];
+        let isDownloading = false;
 
         // 监听下载进度更新
         ipcRenderer.on('download-progress', (event, { taskIndex, progress, status }) => {
             console.log(`Task ${taskIndex} progress: ${progress}%, status: ${status}`);
             updateProgress(taskIndex, progress, status);
+        });
+
+        // 监听下载取消事件
+        ipcRenderer.on('download-cancelled', () => {
+            const statusDiv = document.getElementById('status');
+            const startDownloadButton = document.getElementById('startDownload');
+            const cancelDownloadButton = document.getElementById('cancelDownload');
+
+            statusDiv.textContent = '下载已取消';
+            startDownloadButton.disabled = false;
+            cancelDownloadButton.disabled = true;
+            isDownloading = false;
+
+            // 重置所有进度条的状态
+            const fileList = document.getElementById('fileList');
+            const progressBars = fileList.querySelectorAll('.progress-bar');
+            progressBars.forEach(bar => {
+                bar.style.width = '0%';
+                bar.textContent = '等待中';
+                bar.classList.remove('error');
+            });
+
+            const statusElements = fileList.querySelectorAll('.status');
+            statusElements.forEach(status => {
+                status.textContent = '等待中';
+            });
         });
 
         async function handleFileSelect() {
@@ -245,20 +276,6 @@
             }
         }
 
-        document.getElementById('csvFile').addEventListener('change', async function (e) {
-            const files = e.target.files;
-            const selectedFilesSpan = document.getElementById('selectedFiles');
-
-            if (files && files.length > 0) {
-                const fileName = files[0].name;
-                selectedFilesSpan.textContent = `已选择文件: ${fileName}`;
-                // 自动分析文件
-                await handleFileSelect();
-            } else {
-                selectedFilesSpan.textContent = '未选择文件';
-            }
-        });
-
         document.getElementById('startDownload').addEventListener('click', async () => {
             const statusDiv = document.getElementById('status');
             const startDownloadButton = document.getElementById('startDownload');
@@ -269,6 +286,7 @@
                 return;
             }
 
+            isDownloading = true;
             startDownloadButton.disabled = true;
             cancelDownloadButton.disabled = false;
             statusDiv.textContent = '正在下载...';
@@ -283,29 +301,7 @@
                 statusDiv.textContent = `下载失败: ${error.message}`;
                 startDownloadButton.disabled = false;
                 cancelDownloadButton.disabled = true;
-            }
-        });
-
-        ipcRenderer.on('download-cancelled', () => {
-            const statusDiv = document.getElementById('status');
-            const startDownloadButton = document.getElementById('startDownload');
-            const cancelDownloadButton = document.getElementById('cancelDownload');
-
-            statusDiv.textContent = '下载已取消';
-            startDownloadButton.disabled = false;
-            cancelDownloadButton.disabled = true;
-
-            const fileList = document.getElementById('fileList');
-            const items = fileList.getElementsByClassName('file-item');
-            for (const item of items) {
-                const progressBar = item.querySelector('.progress-bar');
-                const statusSpan = item.querySelector('.status');
-                if (statusSpan.textContent !== '完成') {
-                    statusSpan.textContent = '已取消';
-                    progressBar.style.width = '0%';
-                    progressBar.textContent = '已取消';
-                    progressBar.style.backgroundColor = '#999';
-                }
+                isDownloading = false;
             }
         });
 
@@ -317,72 +313,31 @@
             cancelDownloadButton.disabled = true;
 
             try {
-                await ipcRenderer.invoke('cancel-download');
+                const result = await ipcRenderer.invoke('cancel-download');
+                if (!result.success) {
+                    throw new Error(result.error || '取消下载失败');
+                }
             } catch (error) {
                 console.error('取消下载失败:', error);
                 statusDiv.textContent = `取消下载失败: ${error.message}`;
-                cancelDownloadButton.disabled = false;
+                if (isDownloading) {
+                    cancelDownloadButton.disabled = false;
+                }
             }
         });
 
         function displayRecordList(tasks) {
-            if (!Array.isArray(tasks)) {
-                console.error('无效的任务列表:', tasks);
-                return;
-            }
-
             const fileList = document.getElementById('fileList');
-            if (!fileList) {
-                console.error('找不到文件列表元素');
-                return;
-            }
-
             fileList.innerHTML = '';
-            fileList.style.display = 'block';
-
-            const header = document.createElement('div');
-            header.className = 'list-header';
-            header.innerHTML = `
-                <div>文件名</div>
-                <div>进度</div>
-                <div>状态</div>
-            `;
-            fileList.appendChild(header);
 
             tasks.forEach((task, index) => {
                 const recordItem = document.createElement('div');
-                recordItem.className = 'file-item';
+                recordItem.className = 'record-item';
                 recordItem.id = `task-${index}`;
 
-                const nameContainer = document.createElement('div');
-                nameContainer.className = 'tooltip';
-
-                const nameSpan = document.createElement('div');
-                nameSpan.className = 'file-name';
-                nameSpan.textContent = task.fileName;
-
-                const tooltip = document.createElement('span');
-                tooltip.className = 'tooltip-text';
-                tooltip.textContent = task.fileName;
-
-                nameContainer.addEventListener('mousemove', (e) => {
-                    const rect = nameSpan.getBoundingClientRect();
-                    if (nameSpan.offsetWidth < nameSpan.scrollWidth) {
-                        tooltip.style.visibility = 'visible';
-                        tooltip.style.left = (e.clientX + 15) + 'px';
-                        tooltip.style.top = (e.clientY + 10) + 'px';
-                    } else {
-                        tooltip.style.visibility = 'hidden';
-                    }
-                });
-
-                nameContainer.addEventListener('mouseleave', () => {
-                    tooltip.style.visibility = 'hidden';
-                });
-
-                nameContainer.appendChild(nameSpan);
-                nameContainer.appendChild(tooltip);
-                recordItem.appendChild(nameContainer);
+                const fileName = document.createElement('div');
+                fileName.textContent = task.fileName;
+                recordItem.appendChild(fileName);
 
                 const progressContainer = document.createElement('div');
                 progressContainer.className = 'progress-container';
@@ -418,8 +373,29 @@
                 progressBar.style.width = `${progress}%`;
                 progressBar.textContent = `${progress}%`;
                 statusSpan.textContent = status;
+
+                // 根据状态更新进度条样式
+                if (status.startsWith('失败')) {
+                    progressBar.classList.add('error');
+                } else {
+                    progressBar.classList.remove('error');
+                }
             }
         }
+
+        document.getElementById('csvFile').addEventListener('change', async function (e) {
+            const files = e.target.files;
+            const selectedFilesSpan = document.getElementById('selectedFiles');
+
+            if (files && files.length > 0) {
+                const fileName = files[0].name;
+                selectedFilesSpan.textContent = `已选择文件: ${fileName}`;
+                // 自动分析文件
+                await handleFileSelect();
+            } else {
+                selectedFilesSpan.textContent = '未选择文件';
+            }
+        });
     </script>
 </body>
 

@@ -136,7 +136,7 @@ ipcMain.handle('start-download', async (event, { tasks }) => {
                     });
                 }
                 if (error.message === '下载已取消') {
-                    throw error; // 向上传播取消错误
+                    throw error;
                 }
             }
         }
@@ -144,16 +144,24 @@ ipcMain.handle('start-download', async (event, { tasks }) => {
         const wasDownloadCancelled = global.isDownloadCancelled;
         isDownloading = false;
         global.isDownloadCancelled = false;
-        
+
         if (wasDownloadCancelled) {
+            // 发送取消事件
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('download-cancelled');
+            }
             return { success: false, error: '下载已取消' };
         }
-        
+
         return { success: true };
     } catch (error) {
         console.error('下载过程出错:', error);
         isDownloading = false;
         global.isDownloadCancelled = false;
+        // 发送取消事件
+        if (error.message === '下载已取消' && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('download-cancelled');
+        }
         return { success: false, error: error.message };
     }
 });
@@ -163,7 +171,6 @@ ipcMain.handle('cancel-download', async () => {
     try {
         if (isDownloading) {
             global.isDownloadCancelled = true;
-            isDownloading = false;
             
             // 调用下载模块的取消函数
             await cancelCurrentDownload();
@@ -172,6 +179,8 @@ ipcMain.handle('cancel-download', async () => {
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('download-cancelled');
             }
+
+            isDownloading = false;
         }
         return { success: true };
     } catch (error) {
