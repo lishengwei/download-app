@@ -1,47 +1,48 @@
 <!DOCTYPE html>
 <html>
-
 <head>
+    <meta charset="UTF-8">
     <title>批量下载器</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
-            background-color: white;
-            padding: 20px;
+            background-color: #fff;
+            padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 20px;
+            margin: 0 0 30px 0;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 500;
         }
 
         .file-input-container {
-            margin: 20px 0 30px 0;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-
-        .file-input-container input[type="file"] {
-            display: none;
+            gap: 15px;
         }
 
         .file-select-button {
-            display: inline-block;
-            padding: 8px 16px;
             background-color: #007bff;
             color: white;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 14px;
+            border: none;
             transition: background-color 0.2s;
         }
 
@@ -49,112 +50,147 @@
             background-color: #0056b3;
         }
 
+        input[type="file"] {
+            display: none;
+        }
+
         .selected-files {
-            font-size: 13px;
             color: #666;
-            margin-left: 10px;
+            font-size: 14px;
         }
 
         .button-container {
+            margin-bottom: 20px;
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
             border-radius: 4px;
-            border: 1px solid #e9ecef;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .action-bar button {
-            padding: 6px 12px;
-            font-size: 13px;
-            height: 32px;
-            min-width: 80px;
-            margin: 0;
-            border-radius: 4px;
-            border: 1px solid transparent;
-            transition: all 0.2s ease;
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
-        .action-bar button:hover {
-            opacity: 0.9;
+        #startDownload {
+            background-color: #28a745;
+            color: white;
         }
 
-        .action-bar button:active {
-            transform: translateY(1px);
+        #startDownload:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        #cancelDownload {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        #cancelDownload:hover:not(:disabled) {
+            background-color: #c82333;
         }
 
         #status {
-            margin: 0;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            flex-grow: 1;
+            margin-bottom: 20px;
+            color: #666;
+            font-size: 14px;
         }
 
-        .file-item {
-            display: grid;
-            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr);
-            gap: 10px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            align-items: center;
-        }
-
-        .tooltip {
-            position: relative;
-            display: block;
+        .file-table {
             width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            table-layout: fixed;
         }
 
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            position: fixed;
-            z-index: 1000;
-            background-color: rgba(51, 51, 51, 0.95);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 13px;
-            line-height: 1.4;
-            white-space: nowrap;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
+        .file-table th {
+            background-color: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
         }
 
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
+        .file-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
         }
 
-        /* 确保文件名超出时显示省略号 */
+        .file-table th:nth-child(1),
+        .file-table td:nth-child(1) {
+            width: 45%;
+        }
+
+        .file-table th:nth-child(2),
+        .file-table td:nth-child(2) {
+            width: 35%;
+        }
+
+        .file-table th:nth-child(3),
+        .file-table td:nth-child(3) {
+            width: 20%;
+            text-align: center;
+        }
+
+        .file-name-cell {
+            padding-right: 15px;
+        }
+
         .file-name {
+            width: 100%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding-right: 10px;
-            cursor: default;
-            width: 100%;
+            position: relative;
+            display: block;
+        }
+
+        .file-name:hover::after {
+            content: attr(data-full-name);
+            position: absolute;
+            left: 0;
+            top: 100%;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            white-space: normal;
+            max-width: 300px;
+            word-wrap: break-word;
+            margin-top: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .progress-container {
-            background-color: #f5f5f5;
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
             border-radius: 4px;
             overflow: hidden;
-            height: 20px;
         }
 
         .progress-bar {
-            height: 20px;
+            height: 100%;
             background-color: #28a745;
             width: 0%;
             transition: width 0.3s ease;
             text-align: center;
             color: white;
-            line-height: 20px;
             font-size: 12px;
+            line-height: 20px;
         }
 
         .progress-bar.error {
@@ -162,25 +198,12 @@
         }
 
         .status {
-            margin-top: 5px;
-            font-size: 12px;
+            font-size: 13px;
             color: #666;
-        }
-
-        /* 添加表头样式 */
-        .list-header {
-            display: grid;
-            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1fr);
-            gap: 10px;
-            padding: 10px;
-            background-color: #f5f5f5;
-            font-weight: bold;
-            border-bottom: 2px solid #ddd;
-            margin-bottom: 10px;
+            text-align: center;
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <h1>批量下载器</h1>
@@ -199,7 +222,16 @@
         </div>
 
         <div id="status"></div>
-        <div id="fileList"></div>
+        <table class="file-table" id="fileList">
+            <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>进度</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
 
     <script>
@@ -207,13 +239,11 @@
         let downloadTasks = [];
         let isDownloading = false;
 
-        // 监听下载进度更新
         ipcRenderer.on('download-progress', (event, { taskIndex, progress, status }) => {
             console.log(`Task ${taskIndex} progress: ${progress}%, status: ${status}`);
             updateProgress(taskIndex, progress, status);
         });
 
-        // 监听下载取消事件
         ipcRenderer.on('download-cancelled', () => {
             const statusDiv = document.getElementById('status');
             const startDownloadButton = document.getElementById('startDownload');
@@ -224,26 +254,88 @@
             cancelDownloadButton.disabled = true;
             isDownloading = false;
 
-            // 重置所有进度条的状态
-            const fileList = document.getElementById('fileList');
-            const progressBars = fileList.querySelectorAll('.progress-bar');
-            progressBars.forEach(bar => {
-                bar.style.width = '0%';
-                bar.textContent = '等待中';
-                bar.classList.remove('error');
-            });
-
-            const statusElements = fileList.querySelectorAll('.status');
-            statusElements.forEach(status => {
+            const fileList = document.getElementById('fileList').getElementsByTagName('tbody')[0];
+            const rows = fileList.getElementsByTagName('tr');
+            for (const row of rows) {
+                const progressBar = row.querySelector('.progress-bar');
+                const status = row.querySelector('.status');
+                progressBar.style.width = '0%';
+                progressBar.textContent = '等待中';
+                progressBar.classList.remove('error');
                 status.textContent = '等待中';
-            });
+            }
         });
+
+        function displayRecordList(tasks) {
+            const fileList = document.getElementById('fileList').getElementsByTagName('tbody')[0];
+            fileList.innerHTML = '';
+
+            tasks.forEach((task, index) => {
+                const row = document.createElement('tr');
+                row.id = `task-${index}`;
+
+                // 文件名列
+                const nameCell = document.createElement('td');
+                nameCell.className = 'file-name-cell';
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'file-name';
+                nameDiv.textContent = task.fileName;
+                nameDiv.setAttribute('data-full-name', task.fileName);
+                nameCell.appendChild(nameDiv);
+
+                // 进度列
+                const progressCell = document.createElement('td');
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'progress-container';
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+                progressBar.style.width = '0%';
+                progressBar.textContent = '等待中';
+                progressContainer.appendChild(progressBar);
+                progressCell.appendChild(progressContainer);
+
+                // 状态列
+                const statusCell = document.createElement('td');
+                const status = document.createElement('div');
+                status.className = 'status';
+                status.textContent = '等待中';
+                statusCell.appendChild(status);
+
+                row.appendChild(nameCell);
+                row.appendChild(progressCell);
+                row.appendChild(statusCell);
+                fileList.appendChild(row);
+            });
+        }
+
+        function updateProgress(taskIndex, progress, status) {
+            const taskRow = document.getElementById(`task-${taskIndex}`);
+            if (!taskRow) {
+                console.error('找不到任务行:', taskIndex);
+                return;
+            }
+
+            const progressBar = taskRow.querySelector('.progress-bar');
+            const statusDiv = taskRow.querySelector('.status');
+
+            if (progressBar && statusDiv) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.textContent = `${progress}%`;
+                statusDiv.textContent = status;
+
+                if (status.startsWith('失败')) {
+                    progressBar.classList.add('error');
+                } else {
+                    progressBar.classList.remove('error');
+                }
+            }
+        }
 
         async function handleFileSelect() {
             const fileInput = document.getElementById('csvFile');
             const startDownloadButton = document.getElementById('startDownload');
             const statusDiv = document.getElementById('status');
-            const fileList = document.getElementById('fileList');
+            const fileList = document.getElementById('fileList').getElementsByTagName('tbody')[0];
 
             if (!fileInput.files || fileInput.files.length === 0) {
                 statusDiv.textContent = '请选择一个CSV文件';
@@ -326,63 +418,6 @@
             }
         });
 
-        function displayRecordList(tasks) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-
-            tasks.forEach((task, index) => {
-                const recordItem = document.createElement('div');
-                recordItem.className = 'record-item';
-                recordItem.id = `task-${index}`;
-
-                const fileName = document.createElement('div');
-                fileName.textContent = task.fileName;
-                recordItem.appendChild(fileName);
-
-                const progressContainer = document.createElement('div');
-                progressContainer.className = 'progress-container';
-
-                const progressBar = document.createElement('div');
-                progressBar.className = 'progress-bar';
-                progressBar.style.width = '0%';
-                progressBar.textContent = '等待中';
-
-                progressContainer.appendChild(progressBar);
-                recordItem.appendChild(progressContainer);
-
-                const status = document.createElement('div');
-                status.className = 'status';
-                status.textContent = '等待中';
-                recordItem.appendChild(status);
-
-                fileList.appendChild(recordItem);
-            });
-        }
-
-        function updateProgress(taskIndex, progress, status) {
-            const taskElement = document.getElementById(`task-${taskIndex}`);
-            if (!taskElement) {
-                console.error('找不到任务元素:', taskIndex);
-                return;
-            }
-
-            const progressBar = taskElement.querySelector('.progress-bar');
-            const statusSpan = taskElement.querySelector('.status');
-
-            if (progressBar && statusSpan) {
-                progressBar.style.width = `${progress}%`;
-                progressBar.textContent = `${progress}%`;
-                statusSpan.textContent = status;
-
-                // 根据状态更新进度条样式
-                if (status.startsWith('失败')) {
-                    progressBar.classList.add('error');
-                } else {
-                    progressBar.classList.remove('error');
-                }
-            }
-        }
-
         document.getElementById('csvFile').addEventListener('change', async function (e) {
             const files = e.target.files;
             const selectedFilesSpan = document.getElementById('selectedFiles');
@@ -390,7 +425,6 @@
             if (files && files.length > 0) {
                 const fileName = files[0].name;
                 selectedFilesSpan.textContent = `已选择文件: ${fileName}`;
-                // 自动分析文件
                 await handleFileSelect();
             } else {
                 selectedFilesSpan.textContent = '未选择文件';
@@ -398,5 +432,4 @@
         });
     </script>
 </body>
-
 </html>
